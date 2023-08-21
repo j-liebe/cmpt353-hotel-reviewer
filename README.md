@@ -1,8 +1,9 @@
+** Please note: the data file used by main.py is too large to be uploaded to the repo. Please contact Jenna if you want to access it. **
 # NLP-based Hotel Recommendation System
 ### Computational Data Science (CMPT353) Final Project 
 
 Submitted by
-Setu Patel (setup), Jenna Liebe (jla731), Luna Sang (dsa133)
+Setu Patel, Jenna Liebe, Luna Sang
 
 ## About the project
 
