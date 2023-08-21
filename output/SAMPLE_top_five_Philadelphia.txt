@@ -1,0 +1,7 @@
+Rank  Hotel Name                                   Total Reviews Positive Reviews
+----------------------------------------------------------------------------------------------
+1     Sofitel Philadelphia Hotel                   177          150             
+2     Philadelphia Marriott Downtown               167          145             
+3     Loews Philadelphia Hotel                     163          132             
+4     Hotel Palomar Philadelphia - a Kimpton Hotel 132          125             
+5     Courtyard Philadelphia Downtown              119          111             

@@ -1,0 +1,137 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{graphicx}
+
+\begin{document}
+	
+	\title{CMPT 353 Final Project\\
+		NLP-based Hotel Recommendation System}
+	\author{Setu Patel\\
+		\textit{setup@sfu.ca}
+		\and Jenna Liebe\\
+		\textit{jla731@sfu.ca}
+		\and Luna Sang\\
+		\textit{dsa133@sfu.ca}}
+	\maketitle
+	
+	\begin{abstract}
+		The internet is full of data - there are endless possibilities for the information you can gather from it, from the average ratings given to pictures of dogs on Twitter over time to how much it rained at a particular weather station in 2002. This certainly holds true for data related to hotels and accommodations as well. With this in mind, we wanted to explore ways of dealing with the massive amounts of hotel data out there to support tourists who may be exploring their options for accommodation within major US cities. To accomplish this, we have created a hotel recommendation system which is capable of performing sentiment analysis on the hotel reviews.
+	\end{abstract}
+	
+	\section{Introduction}
+	When exploring accommodation options for your next vacation, you may be overwhelmed by the many websites, review styles, and rating possibilities that are out there. Every travel site has their own method of suggesting a hotel to you, but sometimes this comes with the cost of those sites wanting to get their own kickback from possible business partners. Many people rely on the reviews of other users like themselves, but sometimes it can be hard to compare between hotels with all the options out there. It can also be difficult to wade through the many reviews left, and discern if one bad review is trustworthy compared to all the positive reviews. With this project, we aim to simplify the process of searching for the best possible hotel by using the powers of data analysis and machine learning, and most importantly, reviews from real guests of those hotels.
+	
+	\subsection{Our Approach to Address the Problem}
+	To begin, we will use the popular data science method Extract-Transform-Load (ETL) to acquire hotel review data. This powerful method really boils down to the process of getting the desired data, converting it to an acceptable and usable format, and finally loading it into a program for further processing. Once this process is finished, there are a multitude of directions one can take their cleaned data in. For our project ETL will involve acquiring the data from our source, narrowing it down to the information we need, converting it into a usable format, and finally loading it into our scripts to perform various cleanup and analysis. More about this process can be seen in section 4.
+	Once the data has been successfully cleaned up and preprocessed, we will perform natural language processing (NLP) using a Naive Bayes model to classify reviewer comments as positive or negative. We tried several different types of models for this sentiment analysis, but ultimately went with Naive Bayes given its relatively good accuracy compared to the other two (see section 4.2 for more information). Our training and validation data - created from non-specific and specific city reviews, respectively - will be balanced before entering the model pipeline to ensure the best results.
+	Finally, we will use the predictions from the sentiment analysis to help us determine the top five hotels in a specific, user-selected city, based on each hotel’s total count of positive reviews. The sentiment analysis predictions will also be useful for calculating average scores for each hotel by specific review category, as there is some missing data.
+	
+	\section{Data Acquisition}
+	We utilized the offering and review datasets from CMU School of Computer Science user jiweil (no other author credit could be found). The data was pulled from this link: Hotel-Review Datasets. This hotel review dataset crawled from TripAdvisor, an online hotel reservation website. Finding a dataset in a CSV or JSON format was our main objective, so that we could work with it quickly and easily and utilize Pandas and Spark dataframes.
+	Although there were other available datasets for hotel reviews, we felt this TripAdvisor dataset would provide a sufficient amount of data to perform the operations we planned (namely, the machine learning and sentiment analysis aspect) in a reasonable format and file layout. We also appreciated that it was limited to American hotels, meaning that we had a far higher chance of getting mostly English reviews as opposed to examining hotels around the world in case translation didn’t work out.
+	
+	\section{Working with Data}
+	
+	\subsection{ETL Pipeline}
+	
+	We implemented the popular data science method Extract-Transform-Load (ETL) to acquire hotel review data. This powerful method really boils down to the process of getting the desired data, converting it to an acceptable and usable format, and finally loading it into a program for further processing
+	
+	\subsubsection{Data Extraction (src/Fetch\_Data\_from\_Source.ipynb)}
+	The dataset was split into two components: offering.zip and review.zip. Essentially, the majority of the hotel details were contained within the offering.zip file, while all the information about the user and the review they left on TripAdvisor was found within review.zip. Before merging the data there were several columns that needed to be split, as their data was presented in dictionary format. The two files were ultimately merged by the field “offering\_id” (which was renamed from “id” in offering.zip) and written to a new file as the full dataset of both review and hotel data, original\_data\_merged.csv.gz. This file is not included as part of the Git repository as it was only necessary for this part of the project, and was too large to be uploaded.
+	
+	\subsubsection{Language Detection and Filtering (src/language\_filtering.ipynb)}
+	Once all the review and hotel data was compiled, we decided to filter the reviews based on their language so that during the machine learning process we wouldn’t have to worry about dealing with non-English words. Initially we had hoped to translate the comments instead, but ultimately went with this strategy because of the problems we ran into with the several translation methods we attempted.
+	To detect the language of each review, we first filtered the data from Part B to keep just the review “title” (comment title), “text” (comment body), and ID (for merging back to the full dataset later). This data was then read in as a Spark dataframe and operated on with the “detect\_language” function, which utilized the language detection library langid to determine the comment’s language from its title. We also investigated the idea of using the comment body (“text”) to detect the language, but discarded the idea when we got far fewer confident results (possibly due to an overload of characters for langid). 
+	After the language of each review was determined, the data was manipulated using Pandas functions to join the table of English comments to the original data, leaving us with a dataset of 147,034 reviews determined to be English. Although this was a dramatic decrease from the original size of our dataset, we decided to continue with it because we anticipated that there would still be a sufficient amount of data to perform our sentiment analysis on and the smaller file size made it easier to manipulate.
+	
+	\subsubsection{Data Preprocessing (src/preprocess\_data.ipynb)}
+	After filtering and transforming all the English comments, we proceed to the next stage - data cleaning. The process involves several steps to ensure the data is prepared for meaningful analysis.
+	First, we remove unnecessary columns from the dataframe that do not contribute to our analysis, such as 'username', 'region\_id', 'phone', and others. 
+	Next, we extract essential information from the dataframe columns. One vital extraction involves splitting the 'date\_stayed' column into 'month' and 'year'. We retain the 'month' column as 'month\_stayed' since it allows us to differentiate different times of the year, which is a good parameter for our analysis.
+	To facilitate our analysis using machine learning models, we categorize customer reviews as either positive or negative based on the overall review score in the database. Reviews with a score greater than or equal to 3 are categorized as positive, while those with a score below 3 are classified as negative.
+	In the subsequent step, we remove all non-alphanumeric characters and newline characters from the 'review' column, except for spaces. This cleansing process further enhances the accuracy and effectiveness of our machine learning analysis.
+	Upon completion of the data cleaning, we create and store a new file named 'all\_cities\_cleaned\_english\_reviews.csv.gz.' This refined dataset is now ready to be used in our in-depth machine learning analysis, enabling us to gain valuable insights from the biodata project.
+	With this we complete our ETL pipeline. We had our final dataset of filtered and cleaned hotel reviews, comprising 147,034 reviews from 3598 hotels in 25 cities across the US.
+	
+	\subsection{Machine Learning}
+	
+	Obtaining training and validation dataset
+	
+	The training and validation datasets are created during the problem execution based on the user choice of city for which they want hotel recommendations. The hotel review for the cities outside the user choice of city forms our training data. To obtain this dataset we filtered the dataframe based on locality which maps to name of the city where the hotel is located and customer is reviewing for. We realized that the training dataset was imbalance as there were more number of positive reviews than negative reviews. Hence, we balanced it by sample same number of positive and negative reviews. Out of the prepared dataset, 80% of data was used for training and 20% was used for testing. 
+	
+	Based on user input city, the hotel review for the hotels located in input city forms our predictions dataset. We obtained this dataset by filtering data based on locality set to user input city. Thus, the prediction dataset includes reviews of the hotel located in user choice of city for which they will obtain recommendation based on NLP-based machine learning analysis.
+	
+	We used pipelines implemented using spark, which defines the stages for data transformation on review text and application of machine learning algorithms.
+	
+	Tokenizing and Removing Stopwords
+	
+	First step in feature engineering on review text is to tokenized the text data into words. This is basically to break down sentences into words. It is performed by  Then we need to remove stopwords which are a set of commonly used words in English language as they do not Offer information for the ML model for categorizing into positive and negative review. The tokenizing and stopword removal steps are performed by Tokenizer and StopWordsRemover feature transformers from pyspark machine learning library. As a result, we ends up with the words from the sentences that gives a better interpretation of the meaning of each reviews for categorizing into a positive and negative review.
+	
+	Vectorizing
+	
+	Resulting meaningful set of words for each reviews for further analysis is converted from text into numerical representation. This is important as the ML algorithms we are going to use needs feature input in the numerical format. It is performed by CountVectorizer feature transformer from pyspark machine learning library. With this step, the features going in for training machine learning model is prepared.
+	
+	String Label Encoder
+	
+	Each customer review can be categorized as a positive or negative review. All reviews were labelled with a corresponding “positive” or “negative” string value. It needs to be converted to numerical format for ML model to interpret. A StringIndexer feature transformer from pyspark machine learning library is used to perform this task. It encodes a string column of labels to a column of label indices. With this transformation, our resultant indexed category column for each training review is prepared.
+	
+	Machine Learning Models
+	
+	In the pipeline, we considered multiple machine learning models for sentiment analysis, including:
+	
+	Multinomial Naive Bayes 
+	
+	Naive Bayes is a simple and effective classifiers that works on Bayes theorem of probabilities. Based on our research, a version of the Naive Bayes approach called Multinomial Naive Bayes primarily developed for processing discrete features, particularly text data. We could train this model short amount of time and provided best fit on training data. We were able to achieve accuracy score of 0.92 on the validation dataset.
+	
+	Random Forest Classifier
+	
+	Random Forest Classifier is an ensemble based learning algorithm commonly used for classification tasks. It builds multiple decision trees and combines predictions from these trees to improve accuracy. For our input training data, we performed test by varying number of trees and minimum depth of tress to achieve best accuracy score of 0.92 with 96% precision. However, it took around 10 mins to train the model.
+	
+	Linear SVC
+	
+	Linear Support Vector Classifier (SVC) is classification technique suitable for binary classes. According to our research, Linear SVC seems to perform well for multi-class text classification which is what we were looking for. The model finds a hyperplane which is a decision boundary that maximizes the margin between the two classes or categories by measuring the distance between the closest data points (support vectors) of each class to the hyperplane. With 20 maximum iterations and 0.01 regularization parameter we achieved the accuracy score of 0.91. However, the model seemed to overfit our training data. We tested this model with different combination of input parameter to the model by setting maximum number of iteration ranging from 5 to 100 and regularization parameter ranging from 0.0 to 0.03. The model still seemed to overfit in all test runs.
+	
+	Comparison of ML models
+	
+	[Insert comparison table here]
+	
+	\section{Analysis and User Integration}
+	Once the user has started the program, they are first given a choice of city (a numerical selection), and from there they are prompted to enter a function that they wish to perform on the hotels from that city. Those function options are described here in detail. 
+	
+	\subsection{NLP Sentiment Analysis for Top Five Hotels (src/analyze-data.py, src/machine\_learning.py)}
+	We will employ NLP techniques to perform sentiment analysis on the hotel review comments collected from various cities in the US; the model will be trained on the reviews from all cities in the dataset, excluding the chosen city (which will used as the validation data). The sentiment analysis will then categorize each review as positive or negative based on the sentiments expressed by the reviewers.
+	
+	[Insert code snippet and sample command-line output here]
+	
+	\subsection{Categorical Scores for Top Ten Hotels (src/analyze-data.py)}
+	Our dataset conveniently included all the numerical scores (1-5) that a reviewer could choose to leave regarding various aspects of the hotel, including its location, value, and cleanliness. We wanted to make use of these scores in our program. Therefore, we designed a function (“category\_rating”, in analyze\_data.py) for users to select if they wanted to view the top ten hotels in their chosen city based on the average score of one of those categories. 
+	Since a significant proportion of the categorical scores were left empty, we decided to make use of our machine learning model once more: whenever a review was classified as “positive” by the model we imputed a 4 for the missing categorical score, and for a “negative” review we imputed a 2. Please see section 7, “Challenges and Limitations”, for an explanation of this decision.
+	Once all the scores were present, we calculated the average categorical score of each hotel, and weighted it using the total number of reviews. This was done to give more weight to hotels with more reviews, but at the same time avoid completely drowning out those hotels with fewer overall reviews. Finally, the data was sorted by the weighted average score for the category being examined and returned to the user as a list of the top ten hotels for that category in their selected city.
+	
+	[Insert code snippet and sample command-line output here]
+	
+	\subsection{Individual Hotel Exploration (src/analyze-data.py)}
+	As an additional feature, we wanted to give users the option to view individual hotels from their selected city. This functionality involved far less data analysis than the other two sections, and instead employed both Pandas and our WordCloud.py script to present a scrolling list of hotels that could be selected from. Once selected, the hotel’s name, class, address, TripAdvisor link, and total number of reviews are all displayed to the user. All of these pieces of information are acquired from our final dataset, which throughout the analysis process has been filtered as needed to get the appropriate city (and hotel if necessary, such as in this functionality). To support all of this functionality, users will be able to get a better understanding of the overall sentiment towards the hotel by having a word cloud presented, generated from the most common words used in that hotel’s reviews. Please see Figures 3a and 3b for sample output.
+	
+	[Insert code snippet and sample command-line output here]
+	
+	\section{Results}
+	[Insert results and findings here]
+	
+	\section{Benefits of Our Program}
+	Overall, our hotel recommendation system will have several benefits to users. First, it will certainly save time and effort on the part of the accommodation-seeker by providing a curated list of top hotels for their selected city. One of the main problems that people face when deciding where to stay is the overwhelming amount of information from various sites that they could look at, so our program will hopefully take some of that stress away and help the user narrow down their options. 
+	The second benefit is that because our program relies solely on the analysis of user-written reviews, it removes some of the bias that arises from hotel and travel advisors’ desire for financial gain. Travel advisors may choose to only promote hotels that pay them to do so, and pictures displayed by hotel websites tend to only show off the best sides of themselves. By presenting recommendations based on real traveler reviews, we can help users avoid some of that bias and give them more confidence in their choice.
+	Finally, using the categorical rating option, users can find hotels based on their preferences. These could include the desire for a great location, or for a high cleanliness score. They might be more concerned with hotel class or the overall value for money. With our program, users will have the power to choose what is most important to them and receive top recommendations based on that.
+	
+	\section{Challenges and Limitations}
+	[Insert challenges and limitations here]
+	
+	\section{Conclusion}
+	[Insert conclusion here]
+	
+	\section*{Acknowledgment}
+	[Insert acknowledgment here]
+	
+	\section*{References}
+	[Insert references here]
+	
+\end{document}
